@@ -11,7 +11,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 import plotly.express as px
-import os
 
 # =====================================
 # 1. KONFIGURASI SISTEM UTAMA
@@ -19,7 +18,7 @@ import os
 st.set_page_config(page_title="Tactical Weather Ops — BMKG", page_icon="✈️", layout="wide")
 
 # =====================================
-# 2. CSS — MILITARY STYLE + RADAR ANIMATION + PORTAL HEADER
+# 2. CSS — MILITARY STYLE + RADAR ANIMATION
 # =====================================
 st.markdown("""
 <style>
@@ -33,70 +32,8 @@ div[data-testid="stMetricValue"] {color: #a9df52 !important;}
 .radar:before {content: ""; position: absolute; top: 0; left: 0; width: 50%; height: 2px; background: linear-gradient(90deg, #33ff55, transparent); transform-origin: 100% 50%; animation: sweep 2.5s linear infinite;}
 @keyframes sweep {from { transform: rotate(0deg); } to { transform: rotate(360deg); }}
 hr, .stDivider {border-top: 1px solid #2f3a2f;}
-
-/* TAMBAHAN DESAIN PORTAL MILITER */
-.portal-header {
-    background-color: #1a2a1f;
-    padding: 15px 20px;
-    border-bottom: 3px solid #a9df52;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-radius: 5px;
-}
-.portal-title {
-    color: #ffffff;
-    margin: 0;
-    font-size: 24px;
-    font-weight: bold;
-    letter-spacing: 2px;
-}
-.portal-subtitle {
-    color: #a9df52;
-    margin: 0;
-    font-size: 14px;
-}
-.nav-link-box {
-    background-color: #1a2a1f;
-    border-left: 4px solid #a9df52;
-    padding: 10px;
-    margin-bottom: 10px;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
-}
-.nav-link-box:hover {
-    background-color: #2b3b2b;
-}
 </style>
 """, unsafe_allow_html=True)
-
-# =====================================
-# 2A. HEADER BANNER UTAMA (MIMICKING METOC WEB)
-# =====================================
-st.markdown("""
-<div class="portal-header">
-    <div>
-        <p class="portal-title">AIR FORCE METEOROLOGY & OPERATIONS COMMAND</p>
-        <p class="portal-subtitle">Public Facing & Tactical Portal | Supporting Air Base Operations</p>
-    </div>
-    <div style="text-align: right;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Emblem_of_the_Indonesian_Air_Force.svg/120px-Emblem_of_the_Indonesian_Air_Force.svg.png" width="60">
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# Image Banner (Collage Pesawat Tempur / Radar Cuaca)
-# Fallback logic: Cek apakah file ada di folder assetdashboard, jika tidak pakai URL eksternal agar skrip tidak error
-banner_path = "assetdashboard/banner_utama.jpg"
-if os.path.exists(banner_path):
-    st.image(banner_path, use_container_width=True)
-else:
-    # URL placeholder untuk Air Force / Jet Tempur (Public Domain/Unsplash)
-    st.image("https://images.unsplash.com/photo-1540915637255-a50d2bb071e6?q=80&w=2070&auto=format&fit=crop", 
-             caption="[PLACEHOLDER BANNER] - Simpan gambar Anda di 'assetdashboard/banner_utama.jpg' untuk mengganti gambar ini.", 
-             use_container_width=True)
 
 # =====================================
 # 3. DATABASE LANUD, ADM1, & KONSTANTA
@@ -489,28 +426,16 @@ def flatten_cuaca_entry(entry):
     return df
 
 # =====================================
-# 7. SIDEBAR & NAVIGASI 
+# 7. SIDEBAR & NAVIGASI
 # =====================================
 with st.sidebar:
-    # ----------------------------------------------------
-    # TAMBAHAN NAVIGASI / BADGE MILITER (MIMICKING NAVY SIDEBAR)
-    # ----------------------------------------------------
-    st.markdown("<h3 style='color: white; border-bottom: 2px solid #33ff55; padding-bottom: 5px;'>NAVIGATION</h3>", unsafe_allow_html=True)
-    
-    st.markdown("""
-        <div class="nav-link-box">✈️  BMKG Aviation Center</div>
-        <div class="nav-link-box">📡  Pusat Meteorologi TNI AU</div>
-        <div class="nav-link-box">🛰️  Satelit & Radar Cuaca</div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
+    st.title("🛰️ Tactical Controls")
     
     # ----------------------------------------------------
-    # KONTROL ASLI
+    # PEMBARUAN: Mengganti Text Input dengan Selectbox
     # ----------------------------------------------------
-    st.title("⚙️ Tactical Controls")
-    
     provinsi_list = list(PROVINCE_ADM1_MAP.keys())
+    # Mencari index "Riau (14)" untuk dijadikan default value
     default_idx = provinsi_list.index("Riau (14)") if "Riau (14)" in provinsi_list else 0
     
     selected_prov_label = st.selectbox(
@@ -519,7 +444,9 @@ with st.sidebar:
         index=default_idx
     )
     
+    # Mengekstrak value ADM1 dari dictionary
     adm1 = PROVINCE_ADM1_MAP[selected_prov_label]
+    # ----------------------------------------------------
     
     st.markdown("<div class='radar'></div>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#5f5;'>Scanning Weather...</p>", unsafe_allow_html=True)
@@ -528,9 +455,22 @@ with st.sidebar:
     show_map = st.checkbox("Show Map", value=True)
     show_table = st.checkbox("Show Table", value=False)
     st.markdown("---")
-    st.caption("Data Source: BMKG API\nTheme: Military Ops v2.0")
+    st.caption("Data Source: BMKG API\nTheme: Military Ops v1.0")
+
+
+# =========================================================
+# BAGIAN UTAMA (MAIN AREA) DENGAN TAMBAHAN BANNER DI BAWAH INI
+# =========================================================
 
 st.title("✈️ TNI AU Tactical Weather Operations Dashboard")
+
+# BLOK TAMBAHAN UNTUK MEMANGGIL GAMBAR DARI FOLDER GITHUB ANDA
+try:
+    # PERHATIAN: Silakan ubah "nama_file_banner.png" dengan nama gambar asli Anda di folder 'assetdashboard'
+    st.image("assetdashboard/nama_file_banner.png", use_container_width=True)
+except Exception:
+    # Ini sengaja saya beri fallback kosong agar aplikasi tidak error/crash jika nama file belum disesuaikan.
+    pass
 
 # TAB SYSTEM 
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -676,7 +616,7 @@ with tab3:
         st.warning("Data riwayat METAR tidak tersedia.")
 
 # ==========================================
-# TAB 4: BMKG TACTICAL FORECAST 
+# TAB 4: BMKG TACTICAL Forecast 
 # ==========================================
 with tab4:
     st.markdown("*Source: BMKG Forecast API — Live Data*")
