@@ -1,8 +1,8 @@
-streamlit>=1.30.0
-requests>=2.31.0
-urllib3>=1.26.18
-fpdf>=1.7.2
-beautifulsoup4>=4.12.0
-pandas>=2.0.0
-numpy>=1.24.0
-plotly>=5.18.0
+streamlit==1.35.0
+requests==2.31.0
+urllib3==2.2.1
+fpdf2==2.7.9
+beautifulsoup4==4.12.3
+pandas==2.2.2
+numpy==1.26.4
+plotly==5.22.0
