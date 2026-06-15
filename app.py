@@ -17,7 +17,6 @@ import plotly.express as px
 # =====================================
 # 1. KONFIGURASI SISTEM UTAMA
 # =====================================
-# Pemanggilan set_page_config harus berada paling atas
 st.set_page_config(page_title="Tactical Weather Ops — BMKG", page_icon="✈️", layout="wide")
 
 # =====================================
@@ -25,7 +24,6 @@ st.set_page_config(page_title="Tactical Weather Ops — BMKG", page_icon="✈️
 # =====================================
 st.markdown("""
     <style>
-        /* Mengatur padding container bawaan Streamlit secara agresif untuk layout utuh (Banner Edge-to-Edge) */
         .block-container { 
             padding-top: 0rem !important; 
             padding-bottom: 2rem !important; 
@@ -33,10 +31,7 @@ st.markdown("""
             padding-right: 1rem !important;
             max-width: 100% !important;
         }
-        /* Menghapus ruang kosong di atas header Streamlit */
         header[data-testid="stHeader"] { display: none; }
-
-        /* Military Ops CSS & Radar */
         body {background-color: #0b0c0c; color: #cfd2c3; font-family: "Consolas", "Roboto Mono", monospace;}
         h1, h2, h3, h4 {color: #a9df52; text-transform: uppercase; letter-spacing: 1px;}
         section[data-testid="stSidebar"] {background-color: #111111; color: #d0d3ca;}
@@ -73,7 +68,6 @@ for path in image_paths:
     if img_b64:
          slides_html += f'<div class="swiper-slide"><img src="data:image/png;base64,{img_b64}" /></div>\n'
 
-# Render Carousel hanya jika ada gambar yang berhasil di-load
 if slides_html:
     carousel_html = f"""
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
@@ -147,7 +141,6 @@ LANUD_MAP = {
     "Lanud J.A. Dimara (WAKK)": ["WAKK"],
 }
 
-# Mapping Provinsi ke Kode ADM1 (BPS/BMKG)
 PROVINCE_ADM1_MAP = {
     "Aceh (11)": "11", "Sumatera Utara (12)": "12", "Sumatera Barat (13)": "13", 
     "Riau (14)": "14", "Jambi (15)": "15", "Sumatera Selatan (16)": "16", 
@@ -327,8 +320,11 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf = QAM_PDF()
     pdf.add_page()
     pdf.set_font("helvetica", 'B', 10)
-    date_str = datetime.utcnow().strftime('%d-%m-%Y')
-    time_str = datetime.utcnow().strftime('%H.%M')
+    
+    # PERBAIKAN 1: Penggunaan timezone-aware datetime agar tidak usang (deprecated)
+    current_utc = datetime.now(timezone.utc)
+    date_str = current_utc.strftime('%d-%m-%Y')
+    time_str = current_utc.strftime('%H.%M')
     
     pdf.cell(0, 6, f"METEOROLOGICAL OBS AT      DATE {date_str}      TIME {time_str} (UTC)", ln=True)
     pdf.ln(3)
@@ -402,7 +398,12 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf.cell(95, 5, "OBSERVER ........................................", ln=1, align='R')
     pdf.cell(95, 5, "*ON REQUEST", ln=1)
     
-    return bytes(pdf.output())
+    # PERBAIKAN UTAMA: Mengatasi Error "TypeError: string argument without an encoding"
+    # Kode ini sekarang aman baik jika server menggunakan fpdf versi lawas maupun versi fpdf2.
+    pdf_output = pdf.output(dest='S')
+    if isinstance(pdf_output, str):
+        return pdf_output.encode('latin-1', 'replace')
+    return bytes(pdf_output)
 
 # =====================================
 # 7. ENGINE METAR HISTORY & BMKG FORECAST
@@ -418,7 +419,8 @@ def fetch_metar_history(hours=24):
     return r.text.strip().splitlines()
 
 def fetch_metar_ogimet(hours=24):
-    end = datetime.utcnow()
+    # PERBAIKAN 2: Timezone aware dt untuk Ogimet
+    end = datetime.now(timezone.utc)
     start = end - pd.Timedelta(hours=hours)
     url = "https://www.ogimet.com/display_metars2.php"
     params = {"lang": "en", "lugar": "WIBB", "tipo": "ALL", "ord": "REV", "nil": "NO", "fmt": "txt", "ano": start.year, "mes": start.month, "day": start.day, "hora": start.hour, "anof": end.year, "mesf": end.month, "dayf": end.day, "horaf": end.hour, "minf": end.minute}
@@ -525,10 +527,8 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Data Source: BMKG API\nTheme: Military Ops v1.0")
 
-# Menambahkan judul di bawah Banner
 st.title("✈️ TNI AU Tactical Weather Operations Dashboard")
 
-# TAB SYSTEM 
 tab1, tab2, tab3, tab4 = st.tabs([
     "📡 QAM Multi-Station", 
     "📝 QAM Manual", 
@@ -571,7 +571,7 @@ with tab1:
                 st.download_button(
                     label=f"📥 DOWNLOAD PDF QAM - {icao_list[0]}",
                     data=pdf_bytes,
-                    file_name=f"QAM_{icao_list[0]}_{datetime.now().strftime('%H%M')}.pdf",
+                    file_name=f"QAM_{icao_list[0]}_{datetime.now(timezone.utc).strftime('%H%M')}.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )
@@ -608,7 +608,7 @@ with tab2:
         st.download_button(
             label=f"📥 DOWNLOAD PDF QAM MANUAL - {man_icao}",
             data=pdf_bytes_manual,
-            file_name=f"QAM_MANUAL_{man_icao}_{datetime.now().strftime('%H%M')}.pdf",
+            file_name=f"QAM_MANUAL_{man_icao}_{datetime.now(timezone.utc).strftime('%H%M')}.pdf",
             mime="application/pdf",
             use_container_width=True
         )
@@ -667,7 +667,7 @@ with tab3:
             st.plotly_chart(fig, use_container_width=True)
             
             df_hist["time"] = df_hist["time"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-            st.download_button("⬇️ Download CSV", df_hist.to_csv(index=False), "WIBB_METAR_24H.csv")
+            st.download_button("⬇️ Download CSV", df_hist.to_csv(index=False).encode('utf-8'), "WIBB_METAR_24H.csv")
     except Exception as e:
         st.warning("Data riwayat METAR tidak tersedia.")
 
