@@ -17,7 +17,6 @@ import plotly.express as px
 # =====================================
 # 1. KONFIGURASI SISTEM UTAMA
 # =====================================
-# Pemanggilan set_page_config harus berada paling atas
 st.set_page_config(page_title="Tactical Weather Ops — BMKG", page_icon="✈️", layout="wide")
 
 # =====================================
@@ -25,7 +24,6 @@ st.set_page_config(page_title="Tactical Weather Ops — BMKG", page_icon="✈️
 # =====================================
 st.markdown("""
     <style>
-        /* Mengatur padding container bawaan Streamlit secara agresif untuk layout utuh (Banner Edge-to-Edge) */
         .block-container { 
             padding-top: 0rem !important; 
             padding-bottom: 2rem !important; 
@@ -33,10 +31,7 @@ st.markdown("""
             padding-right: 1rem !important;
             max-width: 100% !important;
         }
-        /* Menghapus ruang kosong di atas header Streamlit */
         header[data-testid="stHeader"] { display: none; }
-
-        /* Military Ops CSS & Radar */
         body {background-color: #0b0c0c; color: #cfd2c3; font-family: "Consolas", "Roboto Mono", monospace;}
         h1, h2, h3, h4 {color: #a9df52; text-transform: uppercase; letter-spacing: 1px;}
         section[data-testid="stSidebar"] {background-color: #111111; color: #d0d3ca;}
@@ -73,38 +68,24 @@ for path in image_paths:
     if img_b64:
          slides_html += f'<div class="swiper-slide"><img src="data:image/png;base64,{img_b64}" /></div>\n'
 
-# Render Carousel hanya jika ada gambar yang berhasil di-load
 if slides_html:
     carousel_html = f"""
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
         <style>
-            html, body {{
-                margin: 0; padding: 0; width: 100%; height: 100%;
-                overflow: hidden; background-color: #0b0c0c;
-            }}
+            html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0b0c0c; }}
             .swiper {{ width: 100%; height: 100vh; }}
             .swiper-slide {{ display: flex; justify-content: center; align-items: center; }}
-            .swiper-slide img {{
-                width: 100%; height: 100%;
-                object-fit: contain; display: block;
-            }}
+            .swiper-slide img {{ width: 100%; height: 100%; object-fit: contain; display: block; }}
         </style>
-        
         <div class="swiper mySwiper">
             <div class="swiper-wrapper">{slides_html}</div>
             <div class="swiper-button-next"></div>
             <div class="swiper-button-prev"></div>
             <div class="swiper-pagination"></div>
         </div>
-        
         <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
         <script>
-            var swiper = new Swiper(".mySwiper", {{
-                loop: true, 
-                autoplay: {{ delay: 4000, disableOnInteraction: false }}, 
-                pagination: {{ el: ".swiper-pagination", clickable: true }}, 
-                navigation: {{ nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }} 
-            }});
+            var swiper = new Swiper(".mySwiper", {{ loop: true, autoplay: {{ delay: 4000, disableOnInteraction: false }}, pagination: {{ el: ".swiper-pagination", clickable: true }}, navigation: {{ nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }} }});
         </script>
     """
     components.html(carousel_html, height=350)
@@ -147,7 +128,6 @@ LANUD_MAP = {
     "Lanud J.A. Dimara (WAKK)": ["WAKK"],
 }
 
-# Mapping Provinsi ke Kode ADM1 (BPS/BMKG)
 PROVINCE_ADM1_MAP = {
     "Aceh (11)": "11", "Sumatera Utara (12)": "12", "Sumatera Barat (13)": "13", 
     "Riau (14)": "14", "Jambi (15)": "15", "Sumatera Selatan (16)": "16", 
@@ -186,7 +166,6 @@ def fetch_metar_raw(icao):
     headers = {'User-Agent': 'Mozilla/5.0 OperationalWeatherClient'}
     icao = icao.upper().strip()
     session = get_robust_session()
-    
     try:
         url = "https://web-aviation.bmkg.go.id/web/metar_speci.php"
         res = session.get(url, headers=headers, timeout=7, verify=False)
@@ -199,21 +178,11 @@ def fetch_metar_raw(icao):
                 if not raw_metar.endswith('='): raw_metar += '='
                 return raw_metar, "BMKG Pusat"
     except: pass
-
     try:
         url = f"https://aviationweather.gov/api/data/metar?ids={icao}&format=raw"
         res = session.get(url, headers=headers, timeout=6)
         if res.status_code == 200 and len(res.text.strip()) > 10 and icao in res.text:
             return res.text.strip(), "NOAA API"
-    except: pass
-
-    try:
-        url = f"https://tgftp.nws.noaa.gov/data/observations/metar/stations/{icao}.TXT"
-        res = session.get(url, headers=headers, timeout=6)
-        if res.status_code == 200:
-            lines = res.text.strip().split('\n')
-            if len(lines) > 1 and icao in lines[1]:
-                return lines[1].strip(), "NOAA Server"
     except: pass
     return None, None
 
@@ -221,7 +190,6 @@ def fetch_taf_raw(icao):
     headers = {'User-Agent': 'Mozilla/5.0 OperationalWeatherClient'}
     icao = icao.upper().strip()
     session = get_robust_session()
-    
     try:
         url = "https://web-aviation.bmkg.go.id/web/taf.php"
         res = session.get(url, headers=headers, timeout=7, verify=False)
@@ -234,21 +202,11 @@ def fetch_taf_raw(icao):
                 if not raw_taf.endswith('='): raw_taf += '='
                 return raw_taf
     except: pass
-
     try:
         url = f"https://aviationweather.gov/api/data/taf?ids={icao}&format=raw"
         res = session.get(url, headers=headers, timeout=6)
         if res.status_code == 200 and len(res.text.strip()) > 10 and icao in res.text:
             return res.text.strip()
-    except: pass
-
-    try:
-        url = f"https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/{icao}.TXT"
-        res = session.get(url, headers=headers, timeout=6)
-        if res.status_code == 200:
-            lines = res.text.strip().split('\n')
-            if len(lines) > 1 and icao in lines[1]:
-                return lines[1].strip()
     except: pass
     return "TAFOR DATA NIL="
 
@@ -263,51 +221,41 @@ def get_data_with_fallback(icao_list):
 def parse_metar(raw, original_icao):
     data = {"wind": "NIL", "vis": "NIL", "wx": "NIL", "cld": "NIL", "tt_td": "NIL", "qnh": "1013/29.92", "qfe": "NIL", "trend": "NOSIG", "rmk": "NIL"}
     if not raw: return data
-    
     main_part = raw
     if "RMK" in raw:
         main_part, rmk_part = raw.split("RMK", 1)
         data["rmk"] = rmk_part.replace("=", "").strip()
-        
     trend_search = re.search(r'\b(TEMPO|BECMG|NOSIG)\b(.*)', main_part)
     if trend_search:
         trend_type = trend_search.group(1)
         trend_rest = trend_search.group(2).replace("=", "").strip()
         data["trend"] = "NOSIG" if trend_type == "NOSIG" else f"{trend_type} {trend_rest}".strip()
         main_part = main_part[:trend_search.start()].strip()
-    
     main_part = main_part.replace("=", "").strip()
-
     w = re.search(r'\b(\d{3}|VRB)(\d{2,3})(G\d{2,3})?KT\b', main_part)
     if w:
         gust = w.group(3) if w.group(3) else ""
         data["wind"] = f"{w.group(1)}/{w.group(2)}{gust} KT"
-
     v_match = re.search(r'\b(\d{4})\b', main_part)
     if v_match:
         dist = int(v_match.group(1))
         data["vis"] = "10 KM" if dist == 9999 else f"{dist} M"
     elif "CAVOK" in main_part: data["vis"] = "10 KM"
-
     wx_codes = r'(?:VC|MI|BC|PR|DR|BL|SH|TS|FZ|DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)'
     all_wx = re.findall(fr'\b([-+]?(?:{wx_codes})+)\b', main_part)
     all_wx = [x for x in all_wx if x not in [original_icao, "TEMPO", "BECMG", "NOSIG"]]
     data["wx"] = " ".join(all_wx) if all_wx else "NIL"
-
     c_layers = re.findall(r'\b(FEW|SCT|BKN|OVC|NSC|SKC)(\d{3})(CB|TCU)?\b', main_part)
     if c_layers:
         data["cld"] = " ".join([f"{t} {int(h)*100} FT{'' if not c else ' '+c}" for t, h, c in c_layers])
     elif "CAVOK" in main_part: data["cld"] = "NIL"
-
     tt_td = re.search(r'\b(M?\d{2})/(M?\d{2})\b', main_part)
     if tt_td: data["tt_td"] = f"{tt_td.group(1).replace('M','-')}/{tt_td.group(2).replace('M','-')}"
-
     q = re.search(r'\bQ(\d{4})\b', main_part)
     if q:
         val = int(q.group(1))
         data["qnh"] = f"{val}/{val*0.02953:.2f}"
         data["qfe"] = "NIL"  
-    
     return data
 
 # =====================================
@@ -327,10 +275,8 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf = QAM_PDF()
     pdf.add_page()
     pdf.set_font("helvetica", 'B', 10)
-    
-    # FIX UPDATE: utcnow() diganti ke now(timezone.utc) untuk mencegah error/depresiasi di masa depan
-    date_str = datetime.now(timezone.utc).strftime('%d-%m-%Y')
-    time_str = datetime.now(timezone.utc).strftime('%H.%M')
+    date_str = datetime.utcnow().strftime('%d-%m-%Y')
+    time_str = datetime.utcnow().strftime('%H.%M')
     
     pdf.cell(0, 6, f"METEOROLOGICAL OBS AT      DATE {date_str}      TIME {time_str} (UTC)", ln=True)
     pdf.ln(3)
@@ -404,11 +350,8 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf.cell(95, 5, "OBSERVER ........................................", ln=1, align='R')
     pdf.cell(95, 5, "*ON REQUEST", ln=1)
     
-    # FIX UTAMA: Penanganan output PDF agar stabil di berbagai versi FPDF
-    pdf_out = pdf.output(dest='S')
-    if isinstance(pdf_out, str):
-        return pdf_out.encode('latin-1', errors='replace')
-    return bytes(pdf_out)
+    # PERBAIKAN: Menggunakan dest='S' untuk fpdf2 agar mengembalikan bytes langsung
+    return pdf.output(dest='S')
 
 # =====================================
 # 7. ENGINE METAR HISTORY & BMKG FORECAST
@@ -424,7 +367,7 @@ def fetch_metar_history(hours=24):
     return r.text.strip().splitlines()
 
 def fetch_metar_ogimet(hours=24):
-    end = datetime.now(timezone.utc)
+    end = datetime.utcnow()
     start = end - pd.Timedelta(hours=hours)
     url = "https://www.ogimet.com/display_metars2.php"
     params = {"lang": "en", "lugar": "WIBB", "tipo": "ALL", "ord": "REV", "nil": "NO", "fmt": "txt", "ano": start.year, "mes": start.month, "day": start.day, "hora": start.hour, "anof": end.year, "mesf": end.month, "dayf": end.day, "horaf": end.hour, "minf": end.minute}
@@ -510,18 +453,10 @@ def flatten_cuaca_entry(entry):
 # =====================================
 with st.sidebar:
     st.title("🛰️ Tactical Controls")
-    
     provinsi_list = list(PROVINCE_ADM1_MAP.keys())
     default_idx = provinsi_list.index("Riau (14)") if "Riau (14)" in provinsi_list else 0
-    
-    selected_prov_label = st.selectbox(
-        "📍 Province Code (ADM1)", 
-        options=provinsi_list,
-        index=default_idx
-    )
-    
+    selected_prov_label = st.selectbox("📍 Province Code (ADM1)", options=provinsi_list, index=default_idx)
     adm1 = PROVINCE_ADM1_MAP[selected_prov_label]
-    
     st.markdown("<div class='radar'></div>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#5f5;'>Scanning Weather...</p>", unsafe_allow_html=True)
     refresh = st.button("🔄 Fetch Data")
@@ -531,49 +466,31 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Data Source: BMKG API\nTheme: Military Ops v1.0")
 
-# Menambahkan judul di bawah Banner
 st.title("✈️ TNI AU Tactical Weather Operations Dashboard")
 
-# TAB SYSTEM 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📡 QAM Multi-Station", 
-    "📝 QAM Manual", 
-    "📊 WIBB METAR & History", 
-    "🛰️ BMKG Tactical Forecast"
-])
+tab1, tab2, tab3, tab4 = st.tabs(["📡 QAM Multi-Station", "📝 QAM Manual", "📊 WIBB METAR & History", "🛰️ BMKG Tactical Forecast"])
 
-# ==========================================
-# TAB 1: MODE OTOMATIS (MULTI-STATION QAM)
-# ==========================================
 with tab1:
     st.info("Penarikan data METAR real-time dengan sistem Fallback Terdekat.")
     col1, col2 = st.columns([1, 1])
-
     with col1:
         pilihan = st.selectbox("Pilih Pangkalan / Lanud:", list(sorted(LANUD_MAP.keys())))
         icao_list = LANUD_MAP[pilihan]
         display_name = pilihan.split(" (")[0].replace("Lanud ", "")
         generate_btn = st.button("TARIK DATA & GENERATE QAM", use_container_width=True)
-
     with col2:
         st.info("Status Jaringan: Multi-Source (BMKG/NOAA/Nearby)")
-
     if generate_btn:
         with st.spinner(f"Menghubungi server untuk {icao_list[0]}..."):
             raw_text, raw_taf, source, found_icao = get_data_with_fallback(icao_list)
-            
             if raw_text:
                 if found_icao != icao_list[0]:
                     st.warning(f"Data {icao_list[0]} Offline. Menggunakan data stasiun terdekat: {found_icao}")
-                
                 st.success(f"BERHASIL (Sumber: {source})")
-                
                 combined_raw_display = f"// RAW METAR DATA\n{raw_text}\n\n// RAW TAFOR FORECAST DATA\n{raw_taf}"
                 st.code(combined_raw_display)
-                
                 p_data = parse_metar(raw_text, icao_list[0])
                 pdf_bytes = generate_pdf(p_data, raw_taf, icao_list[0], display_name)
-                
                 st.download_button(
                     label=f"📥 DOWNLOAD PDF QAM - {icao_list[0]}",
                     data=pdf_bytes,
@@ -584,9 +501,6 @@ with tab1:
             else:
                 st.error("Semua server (Utama & Terdekat) tidak merespon. Coba beberapa saat lagi.")
 
-# ==========================================
-# TAB 2: MODE INPUT MANUAL 
-# ==========================================
 with tab2:
     st.info("Input sandi observasi secara manual jika terjadi pemutusan jaringan komunikasi.")
     with st.form("form_manual_qam"):
@@ -603,10 +517,8 @@ with tab2:
             man_qfe = st.text_input("QFE", "NIL")
             man_trend = st.text_input("TREND", "NOSIG")
             man_rmk = st.text_input("REMARKS (RMK)", "NIL")
-            
         man_taf = st.text_area("TAFOR FORECAST DATA", "TAF WIBB 130500Z 1306/1406 ...")
         btn_manual_generate = st.form_submit_button("GENERATE PDF MANUAL", use_container_width=True)
-        
     if btn_manual_generate:
         manual_data_dict = {"wind": man_wind, "vis": man_vis, "wx": man_wx, "cld": man_cld, "tt_td": man_tt_td, "qnh": man_qnh, "qfe": man_qfe, "trend": man_trend, "rmk": man_rmk}
         pdf_bytes_manual = generate_pdf(manual_data_dict, man_taf, man_icao)
@@ -619,9 +531,6 @@ with tab2:
             use_container_width=True
         )
 
-# ==========================================
-# TAB 3: RIWAYAT WIBB & SATELIT
-# ==========================================
 with tab3:
     st.subheader("Lanud Roesmin Nurjadin — WIBB")
     now = datetime.now(timezone.utc).strftime("%d %b %Y %H%M UTC")
@@ -636,7 +545,6 @@ with tab3:
         st.code(metar_txt)
     except Exception as e:
         st.error("Gagal menarik data WIBB METAR terkini.")
-
     st.divider()
     st.subheader("🛰️ Weather Satellite — Himawari-8 (Infrared)")
     st.caption("BMKG Himawari-8 | Reference only — not for tactical separation")
@@ -646,7 +554,6 @@ with tab3:
         st.image(img.content, use_container_width=True)
     except Exception:
         st.warning("Satellite imagery temporarily unavailable.")
-
     st.divider()
     st.subheader("📊 Historical METAR Meteogram — Last 24h")
     try:
@@ -657,7 +564,6 @@ with tab3:
             source_hist = "OGIMET Archive"
         df_hist = pd.DataFrame([parse_numeric_metar(m) for m in raw_hist if parse_numeric_metar(m)])
         st.caption(f"Data source: {source_hist} | Records: {len(df_hist)}")
-
         if not df_hist.empty:
             df_hist.sort_values("time", inplace=True)
             fig = make_subplots(rows=5, cols=1, shared_xaxes=True, subplot_titles=["Temperature / Dew Point (°C)","Wind Speed (kt)","QNH (hPa)","Visibility (m)","Weather Flags (RA / TS / FG)"])
@@ -671,15 +577,11 @@ with tab3:
             fig.add_trace(go.Scatter(x=df_hist["time"], y=df_hist["FG"].astype(int), mode="markers", name="FG"), 5, 1)
             fig.update_layout(height=950, hovermode="x unified", template="plotly_dark")
             st.plotly_chart(fig, use_container_width=True)
-            
             df_hist["time"] = df_hist["time"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
             st.download_button("⬇️ Download CSV", df_hist.to_csv(index=False), "WIBB_METAR_24H.csv")
     except Exception as e:
         st.warning("Data riwayat METAR tidak tersedia.")
 
-# ==========================================
-# TAB 4: BMKG TACTICAL Forecast 
-# ==========================================
 with tab4:
     st.markdown("*Source: BMKG Forecast API — Live Data*")
     with st.spinner("🛰️ Acquiring weather intelligence..."):
@@ -694,28 +596,21 @@ with tab4:
                     lok = e.get("lokasi", {})
                     label = lok.get("kotkab") or lok.get("adm2") or f"Location {len(mapping)+1}"
                     mapping[label] = {"entry": e}
-
                 col1, col2 = st.columns([2, 1])
                 with col1:
                     loc_choice = st.selectbox("🎯 Select Location", options=list(mapping.keys()))
                 with col2:
                     st.metric("📍 Locations", len(mapping))
-
                 selected_entry = mapping[loc_choice]["entry"]
                 df_fcst = flatten_cuaca_entry(selected_entry)
-                
                 if not df_fcst.empty:
                     df_fcst["ws_kt"] = df_fcst["ws"] * MS_TO_KT
                     df_fcst = df_fcst.sort_values("utc_datetime_dt")
-
                     min_dt = df_fcst["local_datetime_dt"].dropna().min().to_pydatetime()
                     max_dt = df_fcst["local_datetime_dt"].dropna().max().to_pydatetime()
-
                     start_dt = st.slider("Time Range (Local)", min_value=min_dt, max_value=max_dt, value=(min_dt, max_dt), step=pd.Timedelta(hours=3))
-
                     mask = (df_fcst["local_datetime_dt"] >= pd.to_datetime(start_dt[0])) & (df_fcst["local_datetime_dt"] <= pd.to_datetime(start_dt[1]))
                     df_sel = df_fcst.loc[mask].copy()
-
                     st.markdown("---")
                     st.subheader("⚡ Tactical Weather Status")
                     now_fcst = df_sel.iloc[0]
@@ -724,7 +619,6 @@ with tab4:
                     with c2: st.metric("HUMIDITY", f"{now_fcst.get('hu', '—')}%")
                     with c3: st.metric("WIND (KT)", f"{now_fcst.get('ws_kt', 0):.1f}")
                     with c4: st.metric("RAIN (mm)", f"{now_fcst.get('tp', '—')}")
-
                     st.markdown("---")
                     st.subheader("📊 Parameter Trends")
                     c1, c2 = st.columns(2)
@@ -734,7 +628,6 @@ with tab4:
                     with c2:
                         st.plotly_chart(px.line(df_sel, x="local_datetime_dt", y="ws_kt", title="Wind Speed (KT)", markers=True, color_discrete_sequence=["#00ffbf"]), use_container_width=True)
                         st.plotly_chart(px.bar(df_sel, x="local_datetime_dt", y="tp", title="Rainfall (mm)", color_discrete_sequence=["#ffbf00"]), use_container_width=True)
-
                     st.markdown("---")
                     st.subheader("🌪️ Windrose — Direction & Speed")
                     if "wd_deg" in df_sel.columns and "ws_kt" in df_sel.columns:
@@ -757,7 +650,6 @@ with tab4:
                                 fig_wr.add_trace(go.Barpolar(r=subset["percent"], theta=subset["theta"], name=f"{sc} KT", marker_color=colors[i], opacity=0.85))
                             fig_wr.update_layout(title="Windrose (KT)", polar=dict(angularaxis=dict(direction="clockwise", rotation=90, tickvals=list(range(0,360,45))), radialaxis=dict(ticksuffix="%", showline=True, gridcolor="#333")), legend_title="Wind Speed Class", template="plotly_dark")
                             st.plotly_chart(fig_wr, use_container_width=True)
-
                     if show_map:
                         st.markdown("---")
                         st.subheader("🗺️ Tactical Map")
@@ -765,12 +657,10 @@ with tab4:
                             st.map(pd.DataFrame({"lat": [float(selected_entry.get("lokasi", {}).get("lat", 0))], "lon": [float(selected_entry.get("lokasi", {}).get("lon", 0))]}))
                         except Exception as e:
                             st.warning(f"Map unavailable: {e}")
-
                     if show_table:
                         st.markdown("---")
                         st.subheader("📋 Forecast Table")
                         st.dataframe(df_sel)
-
         except Exception as e:
             st.error(f"Failed to fetch tactical data: {e}")
 
