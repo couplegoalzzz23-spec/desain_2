@@ -14,9 +14,14 @@ from plotly.subplots import make_subplots
 import numpy as np
 import plotly.express as px
 
+# Menonaktifkan peringatan SSL untuk request dengan verify=False (mencegah log menumpuk)
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 # =====================================
 # 1. KONFIGURASI SISTEM UTAMA
 # =====================================
+# Pemanggilan set_page_config harus berada paling atas
 st.set_page_config(page_title="Tactical Weather Ops — BMKG", page_icon="✈️", layout="wide")
 
 # =====================================
@@ -24,6 +29,7 @@ st.set_page_config(page_title="Tactical Weather Ops — BMKG", page_icon="✈️
 # =====================================
 st.markdown("""
     <style>
+        /* Mengatur padding container bawaan Streamlit secara agresif untuk layout utuh (Banner Edge-to-Edge) */
         .block-container { 
             padding-top: 0rem !important; 
             padding-bottom: 2rem !important; 
@@ -31,7 +37,10 @@ st.markdown("""
             padding-right: 1rem !important;
             max-width: 100% !important;
         }
+        /* Menghapus ruang kosong di atas header Streamlit */
         header[data-testid="stHeader"] { display: none; }
+
+        /* Military Ops CSS & Radar */
         body {background-color: #0b0c0c; color: #cfd2c3; font-family: "Consolas", "Roboto Mono", monospace;}
         h1, h2, h3, h4 {color: #a9df52; text-transform: uppercase; letter-spacing: 1px;}
         section[data-testid="stSidebar"] {background-color: #111111; color: #d0d3ca;}
@@ -68,6 +77,7 @@ for path in image_paths:
     if img_b64:
          slides_html += f'<div class="swiper-slide"><img src="data:image/png;base64,{img_b64}" /></div>\n'
 
+# Render Carousel hanya jika ada gambar yang berhasil di-load
 if slides_html:
     carousel_html = f"""
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
@@ -321,10 +331,9 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf.add_page()
     pdf.set_font("helvetica", 'B', 10)
     
-    # PERBAIKAN 1: Penggunaan timezone-aware datetime agar tidak usang (deprecated)
-    current_utc = datetime.now(timezone.utc)
-    date_str = current_utc.strftime('%d-%m-%Y')
-    time_str = current_utc.strftime('%H.%M')
+    # Pembaruan datetime untuk menghindari DeprecationWarning di masa depan
+    date_str = datetime.now(timezone.utc).strftime('%d-%m-%Y')
+    time_str = datetime.now(timezone.utc).strftime('%H.%M')
     
     pdf.cell(0, 6, f"METEOROLOGICAL OBS AT      DATE {date_str}      TIME {time_str} (UTC)", ln=True)
     pdf.ln(3)
@@ -398,21 +407,19 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf.cell(95, 5, "OBSERVER ........................................", ln=1, align='R')
     pdf.cell(95, 5, "*ON REQUEST", ln=1)
     
-    # PERBAIKAN UTAMA: Mengatasi Error "TypeError: string argument without an encoding"
-    # Kode ini sekarang aman baik jika server menggunakan fpdf versi lawas maupun versi fpdf2.
-    pdf_output = pdf.output(dest='S')
-    if isinstance(pdf_output, str):
-        return pdf_output.encode('latin-1', 'replace')
-    pdf.cell(95, 5, "*ON REQUEST", ln=1)
+    # =========================================================================
+    # [PROTEKSI MASA DEPAN] Deteksi otomatis fpdf2 (Modern) vs fpdf (Klasik)
+    # =========================================================================
+    try:
+        # Standar fpdf2: Cukup panggil tanpa parameter untuk menghasilkan bytes
+        pdf_out = pdf.output()
+    except TypeError:
+        # Fallback fpdf lama: Membutuhkan parameter dest='S'
+        pdf_out = pdf.output(dest='S')
     
-    # --- SISTEM OUTPUT TAHAN BANTING ---
-    pdf_out = pdf.output()
-    
-    # Jika server masih membaca fpdf lama (output berupa string)
+    # Konversi ke format bytes murni yang siap di-download oleh Streamlit
     if isinstance(pdf_out, str):
-        return pdf_out.encode('latin-1')
-        
-    # Jika server sudah membaca fpdf2 baru (output berupa bytearray/bytes)
+        return pdf_out.encode('latin-1', errors='ignore')
     return bytes(pdf_out)
 
 # =====================================
@@ -429,7 +436,6 @@ def fetch_metar_history(hours=24):
     return r.text.strip().splitlines()
 
 def fetch_metar_ogimet(hours=24):
-    # PERBAIKAN 2: Timezone aware dt untuk Ogimet
     end = datetime.now(timezone.utc)
     start = end - pd.Timedelta(hours=hours)
     url = "https://www.ogimet.com/display_metars2.php"
@@ -537,8 +543,10 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Data Source: BMKG API\nTheme: Military Ops v1.0")
 
+# Menambahkan judul di bawah Banner
 st.title("✈️ TNI AU Tactical Weather Operations Dashboard")
 
+# TAB SYSTEM 
 tab1, tab2, tab3, tab4 = st.tabs([
     "📡 QAM Multi-Station", 
     "📝 QAM Manual", 
@@ -682,7 +690,7 @@ with tab3:
         st.warning("Data riwayat METAR tidak tersedia.")
 
 # ==========================================
-# TAB 4: BMKG TACTICAL FORECAST 
+# TAB 4: BMKG TACTICAL Forecast 
 # ==========================================
 with tab4:
     st.markdown("*Source: BMKG Forecast API — Live Data*")
