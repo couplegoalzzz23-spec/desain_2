@@ -14,10 +14,6 @@ from plotly.subplots import make_subplots
 import numpy as np
 import plotly.express as px
 
-# Menonaktifkan peringatan SSL untuk request dengan verify=False (mencegah log menumpuk)
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 # =====================================
 # 1. KONFIGURASI SISTEM UTAMA
 # =====================================
@@ -151,6 +147,7 @@ LANUD_MAP = {
     "Lanud J.A. Dimara (WAKK)": ["WAKK"],
 }
 
+# Mapping Provinsi ke Kode ADM1 (BPS/BMKG)
 PROVINCE_ADM1_MAP = {
     "Aceh (11)": "11", "Sumatera Utara (12)": "12", "Sumatera Barat (13)": "13", 
     "Riau (14)": "14", "Jambi (15)": "15", "Sumatera Selatan (16)": "16", 
@@ -331,7 +328,7 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf.add_page()
     pdf.set_font("helvetica", 'B', 10)
     
-    # Pembaruan datetime untuk menghindari DeprecationWarning di masa depan
+    # FIX UPDATE: utcnow() diganti ke now(timezone.utc) untuk mencegah error/depresiasi di masa depan
     date_str = datetime.now(timezone.utc).strftime('%d-%m-%Y')
     time_str = datetime.now(timezone.utc).strftime('%H.%M')
     
@@ -407,19 +404,10 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf.cell(95, 5, "OBSERVER ........................................", ln=1, align='R')
     pdf.cell(95, 5, "*ON REQUEST", ln=1)
     
-    # =========================================================================
-    # [PROTEKSI MASA DEPAN] Deteksi otomatis fpdf2 (Modern) vs fpdf (Klasik)
-    # =========================================================================
-    try:
-        # Standar fpdf2: Cukup panggil tanpa parameter untuk menghasilkan bytes
-        pdf_out = pdf.output()
-    except TypeError:
-        # Fallback fpdf lama: Membutuhkan parameter dest='S'
-        pdf_out = pdf.output(dest='S')
-    
-    # Konversi ke format bytes murni yang siap di-download oleh Streamlit
+    # FIX UTAMA: Penanganan output PDF agar stabil di berbagai versi FPDF
+    pdf_out = pdf.output(dest='S')
     if isinstance(pdf_out, str):
-        return pdf_out.encode('latin-1', errors='ignore')
+        return pdf_out.encode('latin-1', errors='replace')
     return bytes(pdf_out)
 
 # =====================================
@@ -589,7 +577,7 @@ with tab1:
                 st.download_button(
                     label=f"📥 DOWNLOAD PDF QAM - {icao_list[0]}",
                     data=pdf_bytes,
-                    file_name=f"QAM_{icao_list[0]}_{datetime.now(timezone.utc).strftime('%H%M')}.pdf",
+                    file_name=f"QAM_{icao_list[0]}_{datetime.now().strftime('%H%M')}.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )
@@ -626,7 +614,7 @@ with tab2:
         st.download_button(
             label=f"📥 DOWNLOAD PDF QAM MANUAL - {man_icao}",
             data=pdf_bytes_manual,
-            file_name=f"QAM_MANUAL_{man_icao}_{datetime.now(timezone.utc).strftime('%H%M')}.pdf",
+            file_name=f"QAM_MANUAL_{man_icao}_{datetime.now().strftime('%H%M')}.pdf",
             mime="application/pdf",
             use_container_width=True
         )
@@ -685,7 +673,7 @@ with tab3:
             st.plotly_chart(fig, use_container_width=True)
             
             df_hist["time"] = df_hist["time"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-            st.download_button("⬇️ Download CSV", df_hist.to_csv(index=False).encode('utf-8'), "WIBB_METAR_24H.csv")
+            st.download_button("⬇️ Download CSV", df_hist.to_csv(index=False), "WIBB_METAR_24H.csv")
     except Exception as e:
         st.warning("Data riwayat METAR tidak tersedia.")
 
