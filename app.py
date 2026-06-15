@@ -403,7 +403,17 @@ def generate_pdf(data, raw_taf, icao, name=""):
     pdf_output = pdf.output(dest='S')
     if isinstance(pdf_output, str):
         return pdf_output.encode('latin-1', 'replace')
-    return bytes(pdf_output)
+    pdf.cell(95, 5, "*ON REQUEST", ln=1)
+    
+    # --- SISTEM OUTPUT TAHAN BANTING ---
+    pdf_out = pdf.output()
+    
+    # Jika server masih membaca fpdf lama (output berupa string)
+    if isinstance(pdf_out, str):
+        return pdf_out.encode('latin-1')
+        
+    # Jika server sudah membaca fpdf2 baru (output berupa bytearray/bytes)
+    return bytes(pdf_out)
 
 # =====================================
 # 7. ENGINE METAR HISTORY & BMKG FORECAST
